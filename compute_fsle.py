@@ -38,22 +38,18 @@ for filename in lst:
 
 # Define grid for lyapunov exponents:
 ## Regular grid with velocity field resolution ##
+fnv                  = xr.open_dataset(files_vel[tt2])
+u,v                  = fnv.variables['ugos'].T,fnv.variables['vgos'].T
+ulon,vlat            = fnv.variables['longitude'].data,fnv.variables['latitude'].data
 
-min_lon, max_lon = 
-min_lat, max_lat = 
-dx, dy =
+min_lon, max_lon     = np.floor(np.min(ulon[:,0])), np.floor(np.max(ulon[:,0]))
+min_lat, max_lat     = np.floor(np.min(vlat[:,0])), np.floor(np.max(vlat[:,0]))
+ndim                 = 1 # Ratio between velocity resolution and lyapunov exponent resolution
+dx, dy               = (ulon[0,1]-ulon[0,0])/ndim, (vlat[1,0]-vlat[0,0])/ndim
 
-lon = np.arange(min_lon, max_lon+dx,dx)
-lat = np.arange(min_lat, max_lat+dy,dy)
+lon, lat             = np.arange(min_lon, max_lon+dx,dx), np.arange(min_lat, max_lat+dy,dy)
 
-path_param      = r'/media/dcortes/EXTERNAL_DRIVE_1/Diego/DUACS/nc/2016/1_24/FSLE_20160410_1_24.nc'
-filedat         = xr.open_dataset(path_param)
-lon,lat         = filedat.variables['lon'].T.data,filedat.variables['lat'].T.data
-
-# Parameters:
-dx, dy          = lon[0,1]-lon[0,0], lat[1,0]-lat[0,0]
-
-numdays = 90
+numdays = 90 # Lagrangian integration interval
 print(str(numdays)+"-day integration period")
 
 # Daily snapshot ========================================================
