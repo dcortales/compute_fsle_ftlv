@@ -1,6 +1,6 @@
 # Computation of 2D Lagrangian Variables from Velocity Fields
 
-This repository provides a Fortran module, ftlv_fsle_pdua_iv.f90, for computing Lagrangian trajectories, finite-time Lagrangian vorticity (FTLV), and the finite-size Lyapunov exponent (FSLE) from velocity fields.
+This repository provides a Fortran module, 'ftlv_fsle_pdua_iv.f90', for computing Lagrangian trajectories, finite-time Lagrangian vorticity (FTLV), and the finite-size Lyapunov exponent (FSLE) from velocity fields.
 The scripts compute_fsle.py and compute_ftlv.py read and select the velocity fields before passing them to the Fortran module for processing and save snapshots of the newly created lagrangian variables.
 
 ## Installation and Usage
