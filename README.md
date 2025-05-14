@@ -20,7 +20,8 @@ Once compiled, the module can be imported as a library and used in `compute_fsle
 - numpy (for f2py functionality)
 - Python (compatible with f2py)
 
-## Author
+## Authors
 
 Diego Cortés Morales
+
 Ismael Hérnandez Carrasco
