@@ -9,7 +9,7 @@ The Fortran module used independently or compiled into a Python-compatible libra
 
 f2py -c -m ftlv_fsle_pdua_iv ftlv_fsle_pdua_iv.f90
 
-Once compiled, the module can be imported as a library and used in the compute_ftlv.py script.
+Once compiled, the module can be imported as a library and used in the compute_fsle.py and compute_ftlv.py scripts.
 
 ## Requirements
 
