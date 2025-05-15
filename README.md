@@ -8,7 +8,7 @@ The scripts `compute_fsle.py` and `compute_ftlv.py` read and select the velocity
 The Fortran module used independently or compiled into a Python-compatible library using `f2py`. To compile with `f2py`, run:
 
 ```bash
-f2py -c -m ftlv_fsle_pdua_iv ftlv_fsle_pdua_iv.f90
+f2py -c -m ftlv_fsle_computation ftlv_fsle_computation.f90
 ```
 
 Once compiled, the module can be imported as a library and used in `compute_fsle.py` and `compute_ftlv.py` scripts.
