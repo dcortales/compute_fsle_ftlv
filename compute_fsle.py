@@ -1,5 +1,3 @@
-# FSLE computation DUACS 1/16
-
 import os
 import numpy as np
 import xarray as xr
