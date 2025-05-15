@@ -10,6 +10,7 @@ The Fortran module used independently or compiled into a Python-compatible libra
 ```bash
 f2py -c -m ftlv_fsle_computation ftlv_fsle_computation.f90
 ```
+or can be simply downloaded within this package: `ftlv_fsle_ekst_computation.cpython-312-x86_64-linux-gnu.so`
 
 Once compiled, the module can be imported as a library and used in `compute_fsle.py` and `compute_ftlv.py` scripts.
 
