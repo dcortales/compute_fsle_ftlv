@@ -4,7 +4,7 @@ import os
 import numpy as np
 import xarray as xr
 from netCDF4 import Dataset as datas
-import ftlv_fsle_pdua_iv as lvddn # Fortran module lagrangian vorticity
+import ftlv_fsle_computation as lvddn # Fortran module lagrangian vorticity
 from prepvel import pathprep   # Vorticity and velocity loading
 
 # Define date_list velocities
