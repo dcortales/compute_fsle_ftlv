@@ -30,8 +30,9 @@ dx, dy               = (ulon[0,1]-ulon[0,0])/ndim, (vlat[1,0]-vlat[0,0])/ndim
 
 # Lagrangian grid:
 lon, lat               = np.arange(min_lon, max_lon+dx,dx), np.arange(min_lat, max_lat+dy,dy)
+[latitude, longitude]  = np.meshgrid[lat,lon]
 numdays                = 90 # Lagrangian integration interval
-dimlyx, dimlyy, dimlyt = lon.shape[0],lat.shape[1],numdays*24+1    # Lagrangian variables field dimensions
+dimlyx, dimlyy, dimlyt = longitude.shape[0],latitude.shape[1],numdays*24+1    # Lagrangian variables field dimensions
 
 print(str(numdays)+"-day integration period")
 
@@ -43,7 +44,7 @@ for tt in np.arange(0,len(dates_vel)-numdays):
     dimlon, dimlat, dimtim            = ug.shape[0], ug.shape[1], ug.shape[2]     # Velocity field dimensions
     ug, vg                            = np.asfortranarray(ug), np.asfortranarray(vg)
 
-    exponentelyapunov                 = lvddn.lyapunov_module.compute_fsle(dimlon,dimlat,dimtim,ug,vg,ulon,vlat,masknew,lon,lat,dimlyx,dimlyy,dimlyt,4) # Lyapunov exponent computation
+    exponentelyapunov                 = lvddn.lyapunov_module.compute_fsle(dimlon,dimlat,dimtim,ug,vg,ulon,vlat,mascara,longitude,latitude,dimlyx,dimlyy,dimlyt,4) # Lyapunov exponent computation
 
     # Create .nc file with daily FSLE ------------------------------------------    
     print('Save daily FSLE field')
@@ -64,7 +65,7 @@ for tt in np.arange(0,len(dates_vel)-numdays):
     fsle_file.units         = 's-1'
     fsle_file.long_name     = 'finite-size lyapunov exponents'
     
-    lat_file[:,:], lon_file[:,:]    = lat, lon
+    lat_file[:,:], lon_file[:,:]    = latitude, longitude
     fsle_file[:,:]                  = exponentelyapunov
     
     ncfile.close()
