@@ -30,7 +30,7 @@ dx, dy               = (ulon[0,1]-ulon[0,0])/ndim, (vlat[1,0]-vlat[0,0])/ndim
 
 # Lagrangian grid:
 lon, lat               = np.arange(min_lon, max_lon+dx,dx), np.arange(min_lat, max_lat+dy,dy)
-[latitude, longitude]  = np.meshgrid[lat,lon]
+[latitude, longitude]  = np.meshgrid(lat,lon)
 numdays                = 90 # Lagrangian integration interval
 dimlyx, dimlyy, dimlyt = longitude.shape[0],latitude.shape[1],numdays*24+1    # Lagrangian variables field dimensions
 
