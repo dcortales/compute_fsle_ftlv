@@ -39,10 +39,7 @@ real(8), intent(out)    :: xp(mx,my,mt), yp(mx,my,mt), zp(mx,my,mt), zint(mx,my)
 
 allocate(zeta(nx,ny,nt))
 
-     
-! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! 			  		LOAD GRID DATA
-! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%	
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LOAD GRID DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ! 	SPATIAL PARAMETERS:
 	
@@ -59,13 +56,15 @@ allocate(zeta(nx,ny,nt))
         nparametroh     = floor(abs(1/deltat))
         ndaysmax        = ndays*nparametroh          ! intervalo temporal total de integracion Runge-Kutta en pasos
         h               = -deltat                    ! Runge-Kutta interval
-        
-! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! 				        INITIAL STEP
-! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% INITIAL STEP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
         jsteps          = nstep0 +1 
         tiempo          = 0.0000
-        
+
+ 	zeta            = vort(a,b,nx,ny,nt,mascara,xlon,ylat)
+  
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SPATIAL LOOP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         do lj=1,my
                
         do li=1,mx
@@ -86,10 +85,8 @@ allocate(zeta(nx,ny,nt))
         
         t            = jsteps + float(itt - 1) * 0
         zp(li,lj,1)  = zeta_interp1 + qq(t,rx,ry,nx,ny,nt,zeta,mascara,xlon,ylat)
-        
-!       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! 				  RUNGE-KUTTA EVOLUTION
-! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	
+! 	%%%%%%%%%%%%%%%%%%%%%%%% RUNGE-KUTTA EVOLUTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	
         do itt = 1,ndaysmax
 			
@@ -180,9 +177,7 @@ real(8), parameter      :: Radio=6371000.0                              ! Earth 
 
 allocate(zeta(nx,ny,nt))
 
-! 	Compute z for the entire period
-
-        zeta            = vort(a,b,nx,ny,nt,mascara,xlon,ylat)
+        zeta            = vort(a,b,nx,ny,nt,mascara,xlon,ylat)          ! Compute z for the entire period
 
 ! 	SPATIAL PARAMETERS:
 
@@ -200,16 +195,14 @@ allocate(zeta(nx,ny,nt))
         nparametroh    = floor(abs(1 / deltat))
         ndaysmax       = ndays * nparametroh                            ! intervalo temporal total de integracion Runge-Kutta en pasos
 	
-! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! 					SPATIAL LOOP
-! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SPATIAL LOOP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         jsteps         = nstep0 +1
         
         do lj = 1,my
         do li = 1,mx
         
-! 	 Initial values:
+! 	Initial values:
         x            = xl(li,lj)                                        ! Initial longitude       
         y            = yl(li,lj)                                        ! Initial latitude
         zeta_interp1 = 0.0000                                           ! Initial vorticity
@@ -225,9 +218,7 @@ allocate(zeta(nx,ny,nt))
   
         t            = jsteps + float(itt - 1) * 0
         
-!       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! 				  RUNGE-KUTTA EVOLUTION
-! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! 	%%%%%%%%%%%%%%%%%%%%%%%% RUNGE-KUTTA EVOLUTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	
         do itt = 1,ndaysmax
 			
@@ -296,7 +287,7 @@ allocate(zeta(nx,ny,nt))
         
 end subroutine compute_ftlv
 
-subroutine compute_fsle(nx, ny, nt,a,b,xlon,ylat,mascara,xl,yl,mx,my,mt,ndiv,exponentelyapunov)
+subroutine compute_fsle(nx, ny, nt,a,b,xlon,ylat,mascara,xl,yl,mx,my,mt,ndiv,alpha,exponentelyapunov)
 implicit real*8(a-h,o-z)
 
 integer, intent(in)     :: nx, ny, nt, ndiv
@@ -304,7 +295,7 @@ real(8)                 :: x, y, newx, newy, t, rx, ry,maska
 real(4)                 :: icontrolo
 integer, intent(in)     :: mx,my,mt
 real(8), intent(in)     :: a(:,:,:), b(:,:,:)
-real(8)                 :: aa, ba
+real(8), intent(in)     :: alpha
 real(8), intent(in)     :: mascara(:,:)
 real(8), intent(in)     :: xl(:,:), yl(:,:)
 real(8), intent(in)     :: xlon(:), ylat(:)
@@ -315,24 +306,22 @@ real(8), parameter      :: Radio=6371000.0 !Earth radius
 integer, parameter      :: nvec = 4
 
 !       DUMMY PARAMETERS:
-        aa = a(1,1,1)
-        ba = b(1,1,1)
-        maska = mascara(1,1)
-        x = xl(1,1)
-        y = yl(1,1)
-        mta = mt
+!        aa = a(1,1,1)
+!        ba = b(1,1,1)
+!        maska = mascara(1,1)
+!        x = xl(1,1)
+!        y = yl(1,1)
+!        mta = mt
 
-newx = x
-newy = y
-t = 1
-rx = x
-ry = y
-rx = xlon(1)
-ry = ylat(1)
+!newx = x
+!newy = y
+!t = 1
+!rx = x
+!ry = y
+!rx = xlon(1)
+!ry = ylat(1)
         
-! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! 			  		LOAD GRID DATA
-! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%	
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LOAD GRID DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ! 	SPATIAL PARAMETERS:
 	
@@ -342,13 +331,12 @@ ry = ylat(1)
 
 !	LYAPUNOV GRID SEPARATION
 	
-        dlx = dx/dfloat(ndiv)
-        dly = dy/dfloat(ndiv)
+        dlx = dx / dfloat(ndiv)
+        dly = dy / dfloat(ndiv)
 
 !	LYAPUNOV CONDITIONS
-        deg = 1
-        delta0 = deg/24
-        deltaf=delta0*30
+
+        deltaf = dlx * alpha
 	
 ! 	TIME PARAMETERS
 	
@@ -364,22 +352,16 @@ ry = ylat(1)
 
         masctierra = 0
         mascoceano = 1
-        
-!       DUMMY PARAMETERS:
-        aa = a(1,1,1)
-        ba = b(1,1,1)
 
-! 	LYAPUNOV COORDENADADAS:
-
-        jsteps       = nstep0 +1
-        
 ! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! 				        INITIAL STEP
 ! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- 
-        do lj=1,my
-               
-        do li=1,mx
+
+        jsteps       = nstep0 +1
+	
+        do lj = 1 , my
+	
+        do li = 1 , mx
         
         icontrolo    = 0                                 ! Define control value
 	
@@ -478,7 +460,7 @@ ry = ylat(1)
                         xk14= w(t+h,xv(jj)+h*xk13,yv(jj)+h*yk23,nx,ny,nt,a,mascara,xlon,ylat)
                         yk24= g(t+h,xv(jj)+h*xk13,yv(jj)+h*yk23,nx,ny,nt,b,mascara,xlon,ylat)
 				
-!Remove beaching particles
+! Remove beaching particles
 
                         if ((xk1==0.0000).and.(yk2==0.0000)) then
                                 icontrolo= 1
@@ -490,7 +472,7 @@ ry = ylat(1)
                         yv(jj)= yv(jj)+(h/6.0)*(yk2+2.0*yk22+2.0*yk23+yk24)
                end do
 	
-!DISTANCE MAIN PARTICLE AND NEIGHBOURS
+! DISTANCE MAIN PARTICLE AND NEIGHBOURS
 
                         do j=1,nvec
                                 xinterm= cos(y*pi/180.0000)*cos(yv(j)*pi/180.0000)*cos((xv(j)-x)*pi/180.0000)&
