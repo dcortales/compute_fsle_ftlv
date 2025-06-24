@@ -62,7 +62,7 @@ allocate(zeta(nx,ny,nt))
         jsteps          = nstep0 +1 
         tiempo          = 0.0000
 
- 	zeta            = vort(a,b,nx,ny,nt,mascara,xlon,ylat)
+        zeta            = vort(a,b,nx,ny,nt,mascara,xlon,ylat)
   
 ! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SPATIAL LOOP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         do lj=1,my
@@ -638,14 +638,13 @@ real(8)                         :: dx, dy, dt, masctierra, mascoceano
 	
 end function w
 	
-	
 ! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! 			   INTERPOLATION FUNCTION V-COMPONENT
 ! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function g(t,x,y,nx,ny,nt,b,mascara,xlon,ylat) result(res)
 
-implicit real*8(a-h,o-z)
+        implicit real*8(a-h,o-z)
 integer, intent(in):: nx, ny, nt
 real(8), intent(in):: t,x,y
 real(8), intent(in):: b(nx,ny,nt)
@@ -654,120 +653,115 @@ real(8), intent(in):: xlon(nx), ylat(ny)
 real(8):: norm
 real(8):: res, xred, yred
 integer:: it, l, m
-
-double precision, parameter :: pi=3.14159265359d0 !Pi
-double precision, parameter :: Radio=6371000.0 !Earth radius
-real(8) :: dx, dy, dt, masctierra, mascoceano
+        
+        double precision, parameter :: pi =3.14159265359d0    ! Pi
+        double precision, parameter :: Radio = 6371000.0       ! Earth radius
+        real(8)                     :: dx, dy, dt, masctierra, mascoceano
+                        
+                masctierra = 0
+                mascoceano = 1
+        
+                dx = xlon(2)-xlon(1) ! u-component velocity field grid
+                dy = ylat(2)-ylat(1) ! v-component velocity field grid
+                dt = 1.0000 ! 1 day
+        
+                xred = ((x - xlon(1)) / dx) + 1.0000
+                yred = ((y - ylat(1)) / dy) + 1.0000
+        
+                dxred = 1.0000
+                dyred = 1.0000
+        
+                l  = int(xred)
+                m  = int(yred)
+                it = int(t)
+        
+        !       Interpolation in time T
+        
+                u1 = b(l,   m,   it)
+                u2 = b(l+1, m,   it)
+                u3 = b(l+1, m+1, it)
+                u4 = b(l,   m+1, it)
+        
+                ty = (xred - dfloat(l)) / dxred
+                uy = (yred - dfloat(m)) / dyred
+                
+                norm = 0.0000
+                g1   = 0.0000
+                
+                if (mascara(l,m).gt.0.5) then
+                        norm  = norm + (1.0 - ty) * (1.0 - uy)
+                        g1    = g1 + (1.0 - ty) * (1.0 - uy) * u1
+                end if
+        
+                if (mascara(l+1,m).gt.0.5) then
+                        norm  = norm + ty * (1.0 - uy)
+                        g1    = g1 + ty * (1.0 - uy) * u2
+                end if
+                        
+                if (mascara(l+1,m+1).gt.0.5) then
+                        norm  = norm + ty * uy
+                        g1    = g1 + ty * uy * u3
+                end if
+        
+                if (mascara(l,m+1).gt.0.5) then
+                        norm  = norm + (1.0 - ty) * uy
+                        g1    = g1 + (1.0 - ty) * uy * u4
+                end if
+        
+        
+                if (norm>1e-5) then
+                        g1    = g1 / norm
+                else
+                        g1    = 0.0000
+                end if
+        
+        !       Interpolation in time T+1
+        
+                u12 = b(l,m,it+1)
+                u22 = b(l+1,m,it+1)
+                u32 = b(l+1,m+1,it+1)
+                u42 = b(l,m+1,it+1)
+        
+                ty2 = (xred - dfloat(l)) / dxred
+                uy2 = (yred - dfloat(m)) / dyred
+        
+                norm= 0.0000
+                g2 = 0.0000
+                        
+                if (mascara(l,m).gt.0.5) then
+                        norm = norm + (1.0 - ty2) * (1.0 - uy2)
+                        g2   = g2   + (1.0 - ty2) * (1.0 - uy2) * u12
+                end if
+                      
+                if (mascara(l+1,m).gt.0.5) then
+                        norm = norm + ty2 * (1.0 - uy2)
+                        g2   = g2   + ty2 * (1.0 - uy2) * u22
+                end if
+        
+                if (mascara(l+1,m+1).gt.0.5) then
+                        norm = norm + ty2 * uy2
+                        g2   = g2   + ty2 * uy2 * u32
+                end if
+        
+                if (mascara(l,m+1).gt.0.5) then
+                        norm = norm + (1.0 - ty2) * uy2
+                        g2   = g2   + (1.0 - ty2) * uy2 * u42
+                end if
+        
+        
+                if (norm > 1e-5) then
+                        g2   = g2 / norm
+                else
+                        g2   = 0.0000
+                end if
+                
+        !       Interpolation T - T+1
+        
+                py = (t - dfloat(it)) / dt
+                res= ((1.0000 - py) * g1 + py * g2) * 86400.00 / (Radio * pi / 180.0000)
+                
+        end function g
 	
-	
-masctierra = 0
-mascoceano = 1
-
-dx = xlon(2)-xlon(1) ! u-component velocity field grid
-dy = ylat(2)-ylat(1) ! v-component velocity field grid
-dt = 1.0000 ! 1 day
-
-xred= ((x-xlon(1))/dx)+1.0000
-yred= ((y-ylat(1))/dy)+1.0000
-
-dxred= 1.0000
-dyred= 1.0000
-
-l= int(xred)
-m= int(yred)
-it= int(t)
-
-!Interpolation in time T
-
-u1= b(l,m,it)
-u2= b(l+1,m,it)
-u3= b(l+1,m+1,it)
-u4= b(l,m+1,it)
-
-ty= (xred-dfloat(l))/dxred
-uy= (yred-dfloat(m))/dyred
-
-	
-norm= 0.0000
-g1= 0.0000
-	
-!if (m.lt.ny) then
-if (mascara(l,m).gt.0.5) then
-norm = norm+(1.0-ty)*(1.0-uy)
-g1= g1+(1.0-ty)*(1.0-uy)*u1
-end if
-
-if (mascara(l+1,m).gt.0.5) then
-norm= norm+ty*(1.0-uy)
-g1= g1+ty*(1.0-uy)*u2
-end if
-		
-if (mascara(l+1,m+1).gt.0.5) then
-norm= norm+ty*uy
-g1= g1+ty*uy*u3
-end if
-
-if (mascara(l,m+1).gt.0.5) then
-norm= norm+(1.0-ty)*uy
-g1= g1+(1.0-ty)*uy*u4
-end if
-
-
-if (norm>1e-5) then
-g1=g1/norm
-else
-g1=0.0000
-end if
-
-!Interpolation in time T+1
-
-u12= b(l,m,it+1)
-u22= b(l+1,m,it+1)
-u32= b(l+1,m+1,it+1)
-u42= b(l,m+1,it+1)
-
-ty2= (xred-dfloat(l))/dxred
-uy2= (yred-dfloat(m))/dyred
-
-norm= 0.0000
-g2 = 0.0000
-		
-if (mascara(l,m).gt.0.5) then
-norm= norm+(1.0-ty2)*(1.0-uy2)
-g2= g2+(1.0-ty2)*(1.0-uy2)*u12
-end if
-	      
-if (mascara(l+1,m).gt.0.5) then
-norm= norm+ty2*(1.0-uy2)
-g2= g2+ty2*(1.0-uy2)*u22
-end if
-
-if (mascara(l+1,m+1).gt.0.5) then
-norm= norm+ty2*uy2
-g2= g2+ty2*uy2*u32
-end if
-
-if (mascara(l,m+1).gt.0.5) then
-norm= norm+(1.0-ty2)*uy2
-g2= g2+(1.0-ty2)*uy2*u42
-end if
-
-
-if (norm>1e-5) then
-g2=g2/norm
-else
-g2=0.0000
-end if
-	
-! Interpolation T - T+1
-
-py = (t-dfloat(it))/dt
-res= ((1.0000-py)*g1+py*g2)*86400.00/(Radio*pi/180.0000)
-	
-	
-end function g
-	
-
 ! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! 			   INTERPOLATION FUNCTION SCALAR
 ! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%	
@@ -788,116 +782,114 @@ real(8), parameter :: pi=3.14159265359d0 !Pi
 real(8), parameter :: Radio=6371000.0 !Earth radius
 real(8) :: dx, dy, dt, dxred, dyred
 
-masctierra = 0
-mascoceano = 1
-controlo = 0
+        masctierra = 0
+        mascoceano = 1
+        controlo = 0
 
-dx = xlon(2)-xlon(1) ! u-component velocity field grid
-dy = ylat(2)-ylat(1) ! v-component velocity field grid
-dt = 1.0000 ! 1 day
+        dx = xlon(2)-xlon(1) ! u-component velocity field grid
+        dy = ylat(2)-ylat(1) ! v-component velocity field grid
+        dt = 1.0000 ! 1 day
 
-xred= ((x-xlon(1))/dx)+1.0000
-yred= ((y-ylat(1))/dy)+1.0000
+        xred= ((x-xlon(1))/dx)+1.0000
+        yred= ((y-ylat(1))/dy)+1.0000
 
-i= int(xred)
-j= int(yred)
-it= int(t)
-res=0
+        i= int(xred)
+        j= int(yred)
+        it= int(t)
+        res=0
 
-if (it==0) then
-       icontrolo=1
-        !exponentelyapunov(li,lj)=0.0000
-       goto 1000! break loop
-       end if
+        if (it==0) then
+               icontrolo=1
+               goto 1000! break loop
+        end if
 	
-! Interpolation in time T
+!       Interpolation in time T
 
-var1= zeta(i,j,it)
-var2= zeta(i+1,j,it)
-var3= zeta(i+1,j+1,it)
-var4= zeta(i,j+1,it)
+        var1 = zeta(i,   j,   it)
+        var2 = zeta(i+1, j,   it)
+        var3 = zeta(i+1, j+1, it)
+        var4 = zeta(i,   j+1, it)
    
-dxred= 1.0000
-dyred= 1.0000
+        dxred= 1.0000
+        dyred= 1.0000
 	
-tx= (xred-dfloat(i))/dxred
-ux= (yred-dfloat(j))/dyred
+        tx   = (xred - dfloat(i)) / dxred
+        ux   = (yred - dfloat(j)) / dyred
 
-norm= 0.0000
-s1= 0.0000
+        norm = 0.0000
+        s1   = 0.0000
 	
-if (mascara(i,j).gt.0.5) then
-norm=norm+(1.0-tx)*(1.0-ux)
-s1= s1+(1.0-tx)*(1.0-ux)*var1
-end if
+        if (mascara(i,j).gt.0.5) then
+                norm = norm + (1.0 - tx) * (1.0 - ux)
+                s1   = s1   + (1.0 - tx) * (1.0 - ux) * var1
+        end if
 		
-if (mascara(i+1,j).gt.0.5) then
-norm=norm+tx*(1.0-ux)
-s1= s1+tx*(1.0-ux)*var2
-end if
+        if (mascara(i+1,j).gt.0.5) then
+                norm = norm + tx * (1.0 - ux)
+                s1   = s1   + tx * (1.0 - ux) * var2
+        end if
 
-if (mascara(i+1,j+1).gt.0.5) then
-norm=norm+tx*ux
-s1= s1+tx*ux*var3
-end if
+        if (mascara(i+1,j+1).gt.0.5) then
+                norm = norm + tx * ux
+                s1   = s1   + tx * ux * var3
+        end if
 
-if (mascara(i,j+1).gt.0.5) then
-norm=norm+(1.0-tx)*ux
-s1= s1+(1.0-tx)*ux*var4
-end if
+        if (mascara(i,j+1).gt.0.5) then
+                norm = norm + (1.0 - tx) * ux
+                s1   = s1   + (1.0 - tx) * ux * var4
+        end if
 
-if (norm>1e-5) then
-s1=s1/norm
-else
-s1=0.0000
-end if
+        if (norm > 1e-5) then
+                s1 = s1 / norm
+        else
+                s1 = 0.0000
+        end if
 
-! Interpolation in time T+1
+!       Interpolation in time T+1
 
-norm= 0.0000
-s2= 0.0000
+        norm= 0.0000
+        s2= 0.0000
 	
-if (it.lt.nt) then
-var12= zeta(i,j,it+1)
-var22= zeta(i+1,j,it+1)
-var32= zeta(i+1,j+1,it+1)
-var42= zeta(i,j+1,it+1)
+        if (it.lt.nt) then
+                var12= zeta(i,   j,   it+1)
+                var22= zeta(i+1, j,   it+1)
+                var32= zeta(i+1, j+1, it+1)
+                var42= zeta(i,   j+1, it+1)
 
-tx2= (xred-dfloat(i))/dxred
-ux2= (yred-dfloat(j))/dyred
+                tx2  = (xred - dfloat(i)) / dxred
+                ux2  = (yred - dfloat(j)) / dyred
 	
-if (mascara(i,j).gt.0.5) then
-norm=norm+(1.0-tx2)*(1.0-ux2)
-s2= s2+(1.0-tx2)*(1.0-ux2)*var12
-end if
+                if (mascara(i,j).gt.0.5) then
+                        norm = norm + (1.0 - tx2) * (1.0 - ux2)
+                        s2   = s2   + (1.0 - tx2) * (1.0 - ux2) * var12
+                end if
 
-if (mascara(i+1,j).gt.0.5) then
-norm=norm+tx2*(1.0-ux2)
-s2= s2+tx2*(1.0-ux2)*var22
-end if
+                if (mascara(i+1,j).gt.0.5) then
+                        norm = norm + tx2 * (1.0 - ux2)
+                        s2   = s2   + tx2 * (1.0 - ux2) * var22
+                end if
 		
-if (mascara(i+1,j+1).gt.0.5) then
-norm=norm+tx2*ux2
-s2= s2+tx2*ux2*var32
-end if
+                if (mascara(i+1,j+1).gt.0.5) then
+                        norm = norm + tx2 * ux2
+                        s2   = s2   + tx2 * ux2 * var32
+                end if
  
-if (mascara(i,j+1).gt.0.5) then
-norm=norm+(1.0-tx2)*ux2
-s2= s2+(1.0-tx2)*ux2*var42
-end if
-end if
+                if (mascara(i,j+1).gt.0.5) then
+                        norm = norm + (1.0 - tx2) * ux2
+                        s2   = s2   + (1.0 - tx2) * ux2 * var42
+                end if
+        end if
 
-if (norm>1e-5) then
-s2=s2/norm
-else
-s2=0.0000
-end if
+        if (norm>1e-5) then
+                s2 = s2 / norm
+        else
+                s2 = 0.0000
+        end if
 
-! Interpolation T - T+1
-px= (t-dfloat(it))/dt
-res= ((1.0000-px)*s1+px*s2)
+        px   = (t - dfloat(it)) / dt
+        res  = ((1.0000 - px) * s1 + px * s2)
 
-1000 continue
+        1000 continue
 	
 end function qq
 
@@ -912,8 +904,8 @@ real(8), intent(in)             :: xlon(nx), ylat(ny)
 real(8),dimension(nx,ny,nt)     :: res
 integer                         :: li, lj, it
 
-real(8), parameter              :: pi = 3.14159265359d0                                                ! Pi
-real(8), parameter              :: Radio = 6371000.0                                                   ! Earth radius
+real(8), parameter              :: pi = 3.14159265359d0   ! Pi
+real(8), parameter              :: Radio = 6371000.0      ! Earth radius
 real(8)                         :: dx, dy
 
 real(8), allocatable            :: zeta(:,:,:), du_y(:,:,:), dv_x(:,:,:), dvdx(:,:,:), dudy(:,:,:)
