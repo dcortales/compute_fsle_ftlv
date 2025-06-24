@@ -23,11 +23,15 @@ common/variables/a,b,zeta,mascara,xlon,ylat,dy,dx,dt,h
 
 contains
 
-  subroutine compute_lagtraj(nx, ny, nt, a, b, xlon, ylat, mascara, xl, yl, mx, my, mt, xp, yp, zp, zint)
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! 	   LAGRANGIAN TRAJECTORY COMPUTATION AND FINITE-TIME LAGRANGIAN VORTICITY
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%	
+
+  subroutine compute_lagtraj(nx, ny, nt, a, b, xlon, ylat, mascara, xl, yl, mx, my, mt, dir, xp, yp, zp, zint)
 implicit real*8(a-h,o-z)
 
 integer, intent(in)     :: nx, ny, nt
-real(8)                 :: x, y, newx, newy, t, rx, ry
+real(8)                 :: x, y, newx, newy, t, rx, ry, dir
 real(4)                 :: icontrolo
 real(8), allocatable    :: zeta(:,:,:)
 integer, intent(in)     :: mx, my, mt
@@ -49,13 +53,17 @@ allocate(zeta(nx,ny,nt))
 ! 	TIME PARAMETERS
 
         dt              = 1.0000                     ! 1 day
-        nstep0          = nt-2                       ! tiempo inicial (ej: 365+125: 5Mayo 2015)
+        if (dir == 1.0) then
+               nstep0 = nt - 2                       ! Initial time
+        else
+               nstep0 = 0                            ! Initial time
+        end if
         delta_hours     = 1
         deltat          = delta_hours/24             ! paso tiempo integracion Runge-Kutta
         ndays           = nt-2                       ! intervalo temporal integracion Runge-Kutta
         nparametroh     = floor(abs(1/deltat))
         ndaysmax        = ndays*nparametroh          ! intervalo temporal total de integracion Runge-Kutta en pasos
-        h               = -deltat                    ! Runge-Kutta interval
+        h               = deltat * dir               ! Runge-Kutta interval
 
 ! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% INITIAL STEP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -152,10 +160,16 @@ allocate(zeta(nx,ny,nt))
         1000 continue
         
 !       End spatial loop
+
+
         end do
         end do
         
 end subroutine compute_lagtraj
+
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! 	                      FINITE-TIME LAGRANGIAN VORTICITY
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%	
 
 subroutine compute_ftlv(nx, ny, nt, a, b, xlon, ylat, mascara, xl, yl, mx, my, zint)
 
@@ -287,39 +301,27 @@ allocate(zeta(nx,ny,nt))
         
 end subroutine compute_ftlv
 
-subroutine compute_fsle(nx, ny, nt,a,b,xlon,ylat,mascara,xl,yl,mx,my,mt,ndiv,alpha,exponentelyapunov)
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! 	                      FINITE-SIZE LYAPUNOV EXPONENT
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%	
+
+subroutine compute_fsle(nx, ny, nt,a,b,xlon,ylat,mascara,xl,yl,mx,my,mt,ndiv,alpha,dir,exponentelyapunov)
 implicit real*8(a-h,o-z)
 
 integer, intent(in)     :: nx, ny, nt, ndiv
-real(8)                 :: x, y, newx, newy, t, rx, ry,maska
+real(8)                 :: x, y, newx, newy, t, rx, ry
 real(4)                 :: icontrolo
 integer, intent(in)     :: mx,my,mt
 real(8), intent(in)     :: a(:,:,:), b(:,:,:)
-real(8), intent(in)     :: alpha
+real(8), intent(in)     :: alpha, dir
 real(8), intent(in)     :: mascara(:,:)
 real(8), intent(in)     :: xl(:,:), yl(:,:)
 real(8), intent(in)     :: xlon(:), ylat(:)
 real(8), intent(out)    :: exponentelyapunov(mx,my)
 
-real(8), parameter      :: pi=3.14159265359d0 !Pi
-real(8), parameter      :: Radio=6371000.0 !Earth radius
-integer, parameter      :: nvec = 4
-
-!       DUMMY PARAMETERS:
-!        aa = a(1,1,1)
-!        ba = b(1,1,1)
-!        maska = mascara(1,1)
-!        x = xl(1,1)
-!        y = yl(1,1)
-!        mta = mt
-
-!newx = x
-!newy = y
-!t = 1
-!rx = x
-!ry = y
-!rx = xlon(1)
-!ry = ylat(1)
+real(8), parameter      :: pi    = 3.14159265359d0 !Pi
+real(8), parameter      :: Radio = 6371000.0       !Earth radius
+integer, parameter      :: nvec  = 4
         
 ! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LOAD GRID DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -340,7 +342,11 @@ integer, parameter      :: nvec = 4
 	
 ! 	TIME PARAMETERS
 	
-        nstep0         = nt-2                         ! tiempo inicial (ej: 365+125: 5Mayo 2015)
+        if (dir == 1.0) then
+               nstep0 = nt - 2                       ! Initial time
+        else
+               nstep0 = 0                            ! Initial time
+        end if
 	
         delta_hours    = 1
         deltat         = delta_hours/24             ! paso tiempo integracion Runge-Kutta
