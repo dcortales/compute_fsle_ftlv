@@ -23,6 +23,10 @@ common/variables/a,b,zeta,mascara,xlon,ylat,dy,dx,dt,h
 
 contains
 
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! 			COMPUTE FINITE-TIME LAGRANGIAN TRAJECTORIES
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 subroutine compute_lagtraj(nx, ny, nt, a, b, xlon, ylat, mascara, xl, yl, mx, my, mt, dir, xp, yp, zp, zint)
 implicit real*8(a-h,o-z)
 
@@ -161,6 +165,10 @@ allocate(zeta(nx,ny,nt))
         
 end subroutine compute_lagtraj
 
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! 			COMPUTE FINITE-TIME LAGRANGIAN VORTICITY
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 subroutine compute_ftlv(nx, ny, nt, a, b, xlon, ylat, mascara, xl, yl, mx, my, dir, zint)
 
 implicit real*8(a-h,o-z)
@@ -192,7 +200,11 @@ allocate(zeta(nx,ny,nt))
 ! 	TIME PARAMETERS
 
         tiempo         = 0.0000
-        nstep0         = nt - 2                                         ! initial time
+        if (dir == 1.0) then
+                nstep0 = nt - 2                                         ! Initial time
+         else
+                nstep0 = 0                                              ! Initial time
+         end if
         delta_hours    = 1
         deltat         = delta_hours / 24                               ! paso tiempo integracion Runge-Kutta
         ndays          = nt - 2                                         ! intervalo temporal integracion Runge-Kutta
@@ -214,7 +226,7 @@ allocate(zeta(nx,ny,nt))
 ! 	Parameters:
         icontrolo    = 0                                                ! Define control value
         t0           = dfloat(jsteps)                                   ! Initial time
-        h            = -deltat                                          ! Runge-Kutta interval
+        h            = deltat * dir                                     ! Runge-Kutta interval
         
 ! 	Particule trajectory starting point (round 6 decimals)
         rx           = real(nint(x * 10.0d0**6)) / 10.0d0**6
@@ -291,11 +303,15 @@ allocate(zeta(nx,ny,nt))
         
 end subroutine compute_ftlv
 
-subroutine compute_fsle(nx, ny, nt,a,b,xlon,ylat,mascara,xl,yl,mx,my,ndiv,alpha,exponentelyapunov)
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! 			 COMPUTE FINITE-SPACE LYAPUNOV EXPONENTS
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+subroutine compute_fsle(nx, ny, nt, a, b, xlon, ylat, mascara, xl, yl, mx, my, ndiv, alpha, dir, exponentelyapunov)
 implicit real*8(a-h,o-z)
 
 integer, intent(in)     :: nx, ny, nt, ndiv
-real(8)                 :: x, y, newx, newy, t, rx, ry
+real(8)                 :: x, y, newx, newy, t, rx, ry, dir
 real(4)                 :: icontrolo
 integer, intent(in)     :: mx,my
 real(8), intent(in)     :: a(:,:,:), b(:,:,:)
@@ -305,8 +321,8 @@ real(8), intent(in)     :: xl(:,:), yl(:,:)
 real(8), intent(in)     :: xlon(:), ylat(:)
 real(8), intent(out)    :: exponentelyapunov(mx,my)
 
-real(8), parameter      :: pi=3.14159265359d0 !Pi
-real(8), parameter      :: Radio=6371000.0 !Earth radius
+real(8), parameter      :: pi = 3.14159265359d0  !Pi
+real(8), parameter      :: Radio = 6371000.0     !Earth radius
 integer, parameter      :: nvec = 4
         
 ! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LOAD GRID DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -324,26 +340,28 @@ integer, parameter      :: nvec = 4
 
 !	LYAPUNOV CONDITIONS
 
-        deltaf = dlx * alpha
+        deltaf = dlx * alpha                          ! alpha: amplification factor
 	
 ! 	TIME PARAMETERS
 	
-        nstep0         = nt-2                         ! tiempo inicial (ej: 365+125: 5Mayo 2015)
+        if (dir == 1.0) then
+                nstep0 = nt - 2                       ! Initial time
+         else
+                nstep0 = 0                            ! Initial time
+         end if
 	
         delta_hours    = 1
-        deltat         = delta_hours/24             ! paso tiempo integracion Runge-Kutta
+        deltat         = delta_hours/24               ! paso tiempo integracion Runge-Kutta
         ndays          = nt-2                         ! intervalo temporal integracion Runge-Kutta
         nparametroh    = floor(abs(1/deltat))
-        ndaysmax       = ndays*nparametroh          ! intervalo temporal total de integracion Runge-Kutta en pasos
+        ndaysmax       = ndays*nparametroh            ! intervalo temporal total de integracion Runge-Kutta en pasos
 	
 !	MASCARA PARAMETERS:
 
         masctierra = 0
         mascoceano = 1
 
-! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! 				        INITIAL STEP
-! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% INITIAL STEP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         jsteps       = nstep0 +1
 	
@@ -352,16 +370,12 @@ integer, parameter      :: nvec = 4
         do li = 1 , mx
         
         icontrolo    = 0                                 ! Define control value
-	
-        x            = xl(li,lj)                                ! Initial longitude       
-        y            = yl(li,lj)                                ! Initual latitude
-		
+        x            = xl(li,lj)                         ! Initial longitude       
+        y            = yl(li,lj)                         ! Initual latitude
         t0           = dfloat(jsteps)                    ! Initial time
-
-        h            = -deltat                           ! Runge-Kutta interval
+        h            = deltat * dir                      ! Runge-Kutta interval
         
         ! Particule trajectory starting point (round 6 decimals)
-        
         rx = real(nint(x * 10.0d0**6)) / 10.0d0**6
         ry = real(nint(y * 10.0d0**6)) / 10.0d0**6
 
@@ -385,9 +399,7 @@ integer, parameter      :: nvec = 4
                 yv(j) = yvini(j)
         end do       
         
-!       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! 				  RUNGE-KUTTA EVOLUTION
-! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! 	%%%%%%%%%%%%%%%%%%%%%%%% RUNGE-KUTTA EVOLUTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	
         do itt = 1,ndaysmax
 			
@@ -433,11 +445,9 @@ integer, parameter      :: nvec = 4
                         goto 1000 ! break loop
                 end if
                 
-! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! 			  NEAREST NEIGHBOURS RUNGE-KUTTA EVOLUTION
-! 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%					
+! 	%%%%%%%%%%%%%%%% NEAREST NEIGHBOURS RUNGE-KUTTA EVOLUTION %%%%%%%%%%%%%%%%%%				
 
-                do jj=1,nvec!# neighbours
+                do jj = 1, nvec !# neighbours
 
                         xk1= w(t,xv(jj),yv(jj),nx,ny,nt,a,mascara,xlon,ylat)
                         yk2= g(t,xv(jj),yv(jj),nx,ny,nt,b,mascara,xlon,ylat)
@@ -448,7 +458,7 @@ integer, parameter      :: nvec = 4
                         xk14= w(t+h,xv(jj)+h*xk13,yv(jj)+h*yk23,nx,ny,nt,a,mascara,xlon,ylat)
                         yk24= g(t+h,xv(jj)+h*xk13,yv(jj)+h*yk23,nx,ny,nt,b,mascara,xlon,ylat)
 				
-! Remove beaching particles
+!       Remove beaching particles
 
                         if ((xk1==0.0000).and.(yk2==0.0000)) then
                                 icontrolo= 1
@@ -460,36 +470,37 @@ integer, parameter      :: nvec = 4
                         yv(jj)= yv(jj)+(h/6.0)*(yk2+2.0*yk22+2.0*yk23+yk24)
                end do
 	
-! DISTANCE MAIN PARTICLE AND NEIGHBOURS
+!       Distance main particle and neighbours
 
-                        do j=1,nvec
-                                xinterm= cos(y*pi/180.0000)*cos(yv(j)*pi/180.0000)*cos((xv(j)-x)*pi/180.0000)&
-                                &+sin(y*pi/180.0000)*sin(yv(j)*pi/180.0000)
-                                dist(j)= abs(acos(xinterm)*180.0000/pi)
-                        end do
-deltafcm=deltaf
+                do j=1,nvec
+                        xinterm = cos(y*pi/180.0000)*cos(yv(j)*pi/180.0000)*cos((xv(j)-x)*pi/180.0000)&
+                        &+sin(y*pi/180.0000)*sin(yv(j)*pi/180.0000)
+                        dist(j) = abs(acos(xinterm)*180.0000/pi)
+                end do
 
-! Distancia maxima entre vecinos
-distanciamaxima= dist(1)
-nvecino = 1
-do j=1,nvec
-if (distanciamaxima.lt.dist(j)) then
-distanciamaxima=dist(j)
-nvecino = j
-end if
-end do
+                deltafcm        = deltaf
 
-distanciainicial= abs(distinicial(nvecino))
+!       Max distance neightbours
 
-if (distanciamaxima.ge.deltafcm) then
+                distanciamaxima = dist(1)
+                nvecino         = 1
+                do j=1,nvec
+                        if (distanciamaxima.lt.dist(j)) then
+                                distanciamaxima = dist(j)
+                                nvecino         = j
+                        end if
+                end do
 
-tiempo= float(itt)*abs(h)
-exponentelyapunov(li,lj)= 1.0000/tiempo*log(distanciamaxima/distanciainicial)
-icontrolo= 1
-goto 1000 !break loop
-end if
+                distanciainicial = abs(distinicial(nvecino))
 
-        !End loop RK evolution
+                if (distanciamaxima.ge.deltafcm) then
+                        tiempo                  = float(itt) * abs(h)
+                        exponentelyapunov(li,lj)= 1.0000 / tiempo * log(distanciamaxima/distanciainicial)
+                        icontrolo               = 1
+                        goto 1000 ! break loop
+                end if
+
+        ! End loop RK evolution
         end do
 
         1000 continue      
